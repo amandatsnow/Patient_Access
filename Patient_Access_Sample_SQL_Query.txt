@@ -1,0 +1,42 @@
+SELECT*
+
+,s2.Status_Explanation AS Complete_Status
+,s2.Status_Explanation_2 AS Complete_Status_Exp
+,pg.Program_ID
+,pg.Name as Program
+,prod.Name
+,scl.Enrollment_Cycle
+,cpp.Contract_Program_Product_ID
+INTO #BV
+FROM Great_Client_Hub.dbo.status_code_logs scl
+LEFT JOIN Great_Client_Hub.dbo.contacts c with (nolock) on c.contact_id = scl.contact_ID
+LEFT JOIN Great_Client_Hub.dbo.contact_addresses ca with (nolock) on c.contact_ID = ca.contact_id
+Left JOIN Great_Client_Hub.dbo.contact_program_products cpp with (nolock) on cpp.contact_program_product_id = scl.contact_program_product_id
+Left JOIN Great_Client_Hub.dbo.program_products pp with (nolock) on pp.program_product_ID = cpp.program_product_ID
+LEFT JOIN Great_Client_Hub.dbo.products prod with (nolock) on prod.product_id = pp.product_id
+LEFT JOIN Great_Client_Hub.dbo.contact_programs cp with (nolock) on cpp.contact_program_ID = cp.contact_program_id
+LEFT JOIN Great_Client_Hub.dbo.programs pg with (nolock) on pp.program_id = pg.program_id
+LEFT JOIN Great_Client_Hub.dbo.status_codes_list lis with (nolock) on lis.status_code = scl.status_code
+INNER JOIN Great_Client_Hub.dbo.status_code_logs s2 with (nolock) on s2.contact_Program_Product_ID = scl.contact_program_product_id
+								     AND s2.enrollment_cycle = scl_enrollment_cycle
+							   	     AND s2.status_code_log_id = (SELECT MAX(INR.status_code_log_id)
+                                                                     FROM Great_Client_Hub.dbo.status_code_logs INR with (nolock)
+								     WHERE INR.contact_program_product_ID = scl.contact_program_product_ID
+                                                                     AND INR.enrollment_cycle = scl.enrollment_cycle)
+LEFT JION Great_Client_Hub.dbo..status_codes_list lis2 with (nolock) on s2.status_code = lis2.status_code
+
+LEFT JOIN Great_Client_Hub.dbo.contact_diagnosis_codes cdc with (nolock) on s2.contact_id = cdc.contact_id
+								     AND cdc.diagnosis_indicator_id = '1'
+							   	     AND CAST(cdc.add_date as datetime) = (SELECT MAX(CAST(INR.add_date as datetime)
+                                                                     FROM Great_Client_Hub.dbo.contact_diagnosis_codes INR with (nolock)
+								     WHERE INR.contact_ID = s2.contact_ID
+                                                                     AND INR.diagnosis_indicator_id = '1')
+LEFT JOIN Great_Client_Hub.dbo.contact_diagnosis_codes dc with (nolock) on cdc.diagnosis_code_id - dc.diagnosis_code_id
+LEFT JOIN Great_Client_Hub.dbo.status_codes_list scli with (nolock) on s2.status_code = scli.status_code
+LEFT JOIN Great_Client_Hub.dbo.view_treating_provider vtp with (nolock) on se.contact_program_product_id = btp.contact_program_product_id
+LEFT JOIN Great_Client_Hub.dbo.view_treating_site vts with (nolock) on s2.contact_program_product_id = bts.contact_program_product_id
+LEFT JOIN Great_Client_Hub.dbo.view_web_treating_site wts with (nolock) on s3.contact_program_product_id = wts.contact_program_product_id
+WHERE 1=1
+AND scl.status_code IN ('005','015')
+AND s2.status)code in ('009','019')
+AND DATEDIFF(mm,s2.add)date,GETDATE()) <=14
